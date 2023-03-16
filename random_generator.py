@@ -1,10 +1,22 @@
 import torch
 import dgl
 import networkx as nx
+import random
 
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+
+
+### This function draws the DGL graph via networkX
+
+def visualize_graph(G, color):
+    plt.figure(figsize=(7,7))
+    plt.xticks([])
+    plt.yticks([])
+    nx.draw_networkx(G, pos=nx.spring_layout(G, seed=42), with_labels=False,
+                     node_color=color, cmap="Set2")
+    plt.show()
 
 
 ### This function makes a fully connected DGL graph from a molecular dataframe. It encodes bond order between (currently) 
