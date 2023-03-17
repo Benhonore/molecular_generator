@@ -155,7 +155,7 @@ def find_molecules(df, aim):
             d[node] = val
 
 
-        print(d)
+        #print(d)
         
         og_d = d.copy()
 
@@ -183,10 +183,10 @@ def find_molecules(df, aim):
     
             node = random.choice(list(d.keys()))
     
-            print(types[str(int(graph.ndata['type'][node]))] + str(node) + ' : ' +
-                  str(int(sum(graph.edata['bond_order'][graph.edges()[0]==node]))) + ' bonds')
+            #print(types[str(int(graph.ndata['type'][node]))] + str(node) + ' : ' +
+                  #str(int(sum(graph.edata['bond_order'][graph.edges()[0]==node]))) + ' bonds')
     
-            print(f'dict:{d}')
+            #print(f'dict:{d}')
 
     
             current = graph.edata['bond_order'][mask]
@@ -228,14 +228,14 @@ def find_molecules(df, aim):
                                     d[hatom] = int(valency_dict[str(int(graph.ndata['type'][hatom]))] - 
                                                    sum(graph.edata['bond_order'][graph.edges()[0]==hatom]))   # Update valency dictionary
                 
-                        print(d)
+                        #print(d)
                         val = True
                 
                 
                     else:
-                        print('bad valency')
+                        #print('bad valency')
                         c+=1
-                        print(c)
+                        #print(c)
                         graph.edata['bond_order'][mask] = current
                 
                         if c > 20:
@@ -255,6 +255,7 @@ def find_molecules(df, aim):
         if len(graphs) == 0:
         
             graphs.append(graph)
+            print(count)
             print('MOLECULE FOUND')
             last_mol_found.append(count)
             print()
@@ -264,6 +265,7 @@ def find_molecules(df, aim):
             if all ([not torch.equal(i.edata['bond_order'], graph.edata['bond_order']) for i in graphs]):
                 
                     graphs.append(graph)
+                    print(count)
                     print('MOLECULE FOUND')
                     last_mol_found.append(count)
                     print()
