@@ -10,12 +10,32 @@ from matplotlib import pyplot as plt
 
 ### This function draws the DGL graph via networkX
 
-def visualize_graph(G, color):
+def visualize_graph(g):
+
+    color = {'1':'grey', '6':'blue', '8':'red'}
+    atom_type = {'1':'H', '6':'C', '8':'O'}
+
+    color_map = []
+    label_dict = {}
+    types = []
+
+    for i, typ in enumerate(g.ndata['type']):
+        color_map.append(color[str(int(typ))])
+        label_dict[i] = atom_type[str(int(typ))] + str(i)
+        if typ > 1:
+            size = typ -2
+        else:
+            size = 1
+        types.append(size)
+
+
+    G = dgl.to_networkx(g)
+
     plt.figure(figsize=(7,7))
     plt.xticks([])
     plt.yticks([])
-    nx.draw_networkx(G, pos=nx.spring_layout(G, seed=42), with_labels=False,
-                     node_color=color, cmap="Set2")
+    nx.draw_networkx(G, pos=nx.spring_layout(G, seed=42), node_size=[v*200 for v in types], labels = label_dict, with_labels=True,
+                     node_color=color_map, cmap="Set2")
     plt.show()
 
 
@@ -202,6 +222,5 @@ def draw_graph_connectivity(g):
                 
     new_g.add_edges(src, dst)
 
-    show_graph = dgl.to_networkx(new_g)
-    visualize_graph(show_graph, 'blue')
+    visualize_graph(new_g)
 
