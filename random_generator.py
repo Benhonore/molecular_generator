@@ -216,7 +216,7 @@ def draw_graph_connectivity(g):
     for node in range(len(g.nodes())):
         for i, edge_node in enumerate(g.edges()[0]):
             if edge_node == node:
-                if g.edata['bond_order'][i] != 0:
+                if g.edata['distance'][i] != 0:
                     src.append(node)
                     dst.append(g.edges()[1][i])
                 

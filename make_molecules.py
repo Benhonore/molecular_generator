@@ -2,7 +2,7 @@ import torch
 import dgl
 import networkx as nx
 import random
-
+import sys
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
@@ -39,6 +39,31 @@ def visualize_graph(g):
 
 
 
+### The purpose of this function is to illustrate the structure of the a newly generated graph, because these graphs are all
+### fully connected, just drawing the graph as is, is unhelpful so instead we use this function to make a partially connected
+### graph out of the fully connected output graph where edges = bonds.
+
+def draw_graph_connectivity(g):
+    new_g = dgl.DGLGraph()
+    new_g.add_nodes(len(g.nodes()))
+    new_g.ndata['type'] = g.ndata['type']
+
+    src = []
+    dst = []
+
+    for node in range(len(g.nodes())):
+        for i, edge_node in enumerate(g.edges()[0]):
+            if edge_node == node:
+                if g.edata['distance'][i] != 0:
+                    src.append(node)
+                    dst.append(g.edges()[1][i])
+
+    new_g.add_edges(src, dst)
+
+    visualize_graph(new_g)
+
+
+
 ### This function makes a fully connected DGL graph from a molecular dataframe. It encodes bond order between (currently)
 ### hydrogens and the atoms that they are bonded to which we are currently referring to as hard edges. This is on the basis
 ### that HSQC data is available as well as NMR data and long term we will need to remove this fpr heteroatoms. It also returns
@@ -47,7 +72,8 @@ def visualize_graph(g):
 def make_full_graph(atom_df):
     g = dgl.DGLGraph()
     g.add_nodes(len(atom_df))
-    ndata = {'type': torch.as_tensor(atom_df['typeint'].to_numpy(), dtype=torch.int64)}
+    ndata = {'type': torch.as_tensor(atom_df['typeint'].to_numpy(), dtype=torch.int64),
+            'shift':torch.as_tensor(atom_df['shift'].to_numpy(), dtype=torch.float32)}
     g.ndata.update(ndata)
 
 
@@ -80,11 +106,42 @@ def make_full_graph(atom_df):
                     edge_type.append(0)
                     mask.append(True)
 
-    edata= {'bond_order':torch.as_tensor(edge_type, dtype=torch.int64)}
+    edata= {'distance':torch.as_tensor(edge_type, dtype=torch.int64)}
     g.add_edges(cpl_src, cpl_end)
     g.edata.update(edata)
 
     return g, np.array(mask)
+
+
+### Simply, this function makes wha we know to be the real graph - essential for measuring the performance to this method.
+
+def make_real_graph(atom_df):
+    g = dgl.DGLGraph()
+    g.add_nodes(len(atom_df))
+    ndata = {'type': torch.as_tensor(atom_df['typeint'].to_numpy(), dtype=torch.int64), 'shift':torch.as_tensor(atom_df['shift'].to_numpy())}
+    g.ndata.update(ndata)
+
+
+    cpl_src=[]
+    cpl_end=[]
+    edge_type = []
+
+    for atom in range(len(atom_df)):
+        for atom2, con in enumerate(atom_df.iloc[atom]['conn']):
+                if atom == atom2:
+                    continue
+                else:
+                    cpl_src.append(atom)
+                    cpl_end.append(atom2)
+
+                    edge_type.append(con)
+
+    edata= {'distance':torch.as_tensor(edge_type, dtype=torch.int64)}
+    g.add_edges(cpl_src, cpl_end)
+    g.edata.update(edata)
+
+    return g
+
 
 
 ### This function simply takes takes a list of length 'size' and randomly distributes a number 'n' across that list
@@ -150,7 +207,7 @@ def find_molecules(df, aim):
                 if int(node_index) == node:
                     rtn_node = graph.edges()[1][i]
                     if graph.ndata['type'][rtn_node] == 1:
-                        if graph.edata['bond_order'][i] == 1:
+                        if graph.edata['distance'][i] == 1:
                             val-= 1
             d[node] = val
 
@@ -166,7 +223,7 @@ def find_molecules(df, aim):
 
         real_graph = False
 
-        original = graph.edata['bond_order'][mask]
+        original = graph.edata['distance'][mask]
         
     
         while not real_graph:
@@ -189,7 +246,7 @@ def find_molecules(df, aim):
             #print(f'dict:{d}')
 
     
-            current = graph.edata['bond_order'][mask]
+            current = graph.edata['distance'][mask]
     
     
             if d[node] > 0:
@@ -198,7 +255,7 @@ def find_molecules(df, aim):
                 val = False
         
                 while not val:
-                    temp = graph.edata['bond_order'][mask]
+                    temp = graph.edata['distance'][mask]
             
                     temp_src = temp[src==node]
                     temp_dst = temp[dst==node]
@@ -213,20 +270,21 @@ def find_molecules(df, aim):
             
                     if len(last_mol_found) !=0:
                         if count - int(last_mol_found[-1]) > 1000:
+                            print()
                             print(f'1000 iterations since last molecule found: {len(graphs)} molecules found.')
                             finish=True
                             break
         
         
-                    graph.edata['bond_order'][mask] = temp  # Update bond order
+                    graph.edata['distance'][mask] = temp  # Update bond order
         
                 
-                    if all ([sum(graph.edata['bond_order'][graph.edges()[0]==hatom]) <= 
+                    if all ([sum(graph.edata['distance'][graph.edges()[0]==hatom]) <= 
                              valency_dict[str(int(graph.ndata['type'][hatom]))] for hatom in d]):  # Check to see if new bond order works
             
                         for hatom in d:
                                     d[hatom] = int(valency_dict[str(int(graph.ndata['type'][hatom]))] - 
-                                                   sum(graph.edata['bond_order'][graph.edges()[0]==hatom]))   # Update valency dictionary
+                                                   sum(graph.edata['distance'][graph.edges()[0]==hatom]))   # Update valency dictionary
                 
                         #print(d)
                         val = True
@@ -236,11 +294,11 @@ def find_molecules(df, aim):
                         #print('bad valency')
                         c+=1
                         #print(c)
-                        graph.edata['bond_order'][mask] = current
+                        graph.edata['distance'][mask] = current
                 
                         if c > 20:
                     
-                            graph.edata['bond_order'][mask] = original
+                            graph.edata['distance'][mask] = original
                             d = og_d
                 
                         continue
@@ -255,19 +313,19 @@ def find_molecules(df, aim):
         if len(graphs) == 0:
         
             graphs.append(graph)
-            print(count)
-            print('MOLECULE FOUND')
+            sys.stdout.write('\rmolecules found: %d' %len(graphs))
+            sys.stdout.flush()
             last_mol_found.append(count)
-            print()
+            #print()
         
         if len(graphs) != 0:
         
-            if all ([not torch.equal(i.edata['bond_order'], graph.edata['bond_order']) for i in graphs]):
+            if all ([not torch.equal(i.edata['distance'], graph.edata['distance']) for i in graphs]):
                 
                     graphs.append(graph)
-                    print(count)
-                    print('MOLECULE FOUND')
+                    sys.stdout.write('\rmolecules found: %d' %len(graphs))
+                    sys.stdout.flush()
                     last_mol_found.append(count)
-                    print()
+                    #print()
     
     return graphs, last_mol_found, count
