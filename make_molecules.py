@@ -172,6 +172,18 @@ def single_molecule(g):
     num_components = nx.number_connected_components(dgl.to_networkx(rep_g).to_undirected())
     return num_components == 1
 
+### This function checks if two graphs are isomorphic, on other words, for this purpose it checks whether two structures are the
+### the same molecule but with different ordering of atoms.
+
+def isomorphic(g1, g2):
+    new_g1 = make_partial_graph(g1)
+    new_g2 = make_partial_graph(g2)
+    
+    new_g1 = dgl.to_networkx(new_g1)
+    new_g2 = dgl.to_networkx(new_g2)
+    
+    return nx.is_isomorphic(new_g1, new_g2)   
+
 
 ### This function is written to introduce more logic to the random updating of edges in the molecule search than the more
 ### original scatter gun approach of randomly distributing the total number of available bonding electrons across all available
