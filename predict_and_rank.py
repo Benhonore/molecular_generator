@@ -65,3 +65,26 @@ def rank_structures(mols): # Current botch: zero all of the 3D relevant edge fea
     df['c_error'] = c_error
 
     return df   # A dataframe of graph | proton_error | carbon_error is returned
+
+
+def evaluate(df, real_graph):
+
+    right_mol_h = False
+    right_mol_c = False
+
+    for i in range(len(df.sort_values(by=['h_error']))):
+        if list(df.sort_values(by=['h_error']).iloc[i]['graphs'].edata['distance'])== list(real_graph.edata['distance']):
+            print(f'PROTON ranked: {i+1}')
+            h=i+1
+        
+    for i in range(len(df.sort_values(by=['c_error']))):
+        if list(df.sort_values(by=['c_error']).iloc[i]['graphs'].edata['distance'])== list(real_graph.edata['distance']):
+            print(f'CARBON ranked: {i+1}')
+            c=i+1
+
+    if mm.isomorphic(df.sort_values(by=['h_error']).iloc[0]['graphs'], real_graph):
+        right_mol_h = True
+    if mm.isomorphic(df.sort_values(by=['c_error']).iloc[0]['graphs'], real_graph):
+        right_mol_c = True
+
+    return h, c, right_mol_h, right_mol_c
