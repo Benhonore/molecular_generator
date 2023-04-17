@@ -11,8 +11,8 @@ from matplotlib import pyplot as plt
 
 def visualize_graph(g):
 
-    color = {'1':'grey', '6':'blue', '8':'red'}
-    atom_type = {'1':'H', '6':'C', '8':'O'}
+    color = {'1':'grey', '6':'blue', '7':'green', '8':'red', '9':'yellow'}
+    atom_type = {'1':'H', '6':'C', '7':'N', '8':'O', '9':'F'}
 
     color_map = []
     label_dict = {}
@@ -75,7 +75,7 @@ def draw_graph_connectivity(g):
 
 ### This function makes a fully connected DGL graph from a molecular dataframe. It encodes bond order between (currently)
 ### hydrogens and the atoms that they are bonded to which we are currently referring to as hard edges. This is on the basis
-### that HSQC data is available as well as NMR data and long term we will need to remove this fpr heteroatoms. It also returns
+### that HSQC data is available as well as NMR data and long term we will need to remove this for heteroatoms. It also returns
 ### a mask to mask all edges that are not editable which is sued later in the update graph function.
 
 def make_full_graph(atom_df):
@@ -160,7 +160,7 @@ def distribute(n, size):
     lst = [0] * size
     while sum(lst) < n:
         p= random.randint(0, size-1)
-        if lst[p] < 2:
+        if lst[p] < 3:
             lst[p] +=1
     return lst
 
@@ -184,6 +184,13 @@ def isomorphic(g1, g2):
     
     return nx.is_isomorphic(new_g1, new_g2)   
 
+### This function determines if two graphs are exactly the SAME (not just isomorphic).
+
+def equivalent(g1, g2):
+    if list(g1.edata['distance']) == list(g2.edata['distance']):
+        return True
+    else:
+        return False
 
 ### This function is written to introduce more logic to the random updating of edges in the molecule search than the more
 ### original scatter gun approach of randomly distributing the total number of available bonding electrons across all available
@@ -199,8 +206,8 @@ def isomorphic(g1, g2):
 
 def find_molecules(df, aim, multiple_molecules = False):
 
-    types = {'1':'H', '6':'C', '8':'O'}
-    valency_dict = {'6': 4, '8': 2, '1':1}
+    types = {'1':'H', '6':'C', '7':'N', '8':'O', '9':'F'}
+    valency_dict = {'6': 4, '8': 2, '7':3, '1':1, '9':1}
     graphs = []
     
     last_mol_found = []
@@ -208,8 +215,8 @@ def find_molecules(df, aim, multiple_molecules = False):
     count=0
 
     while len(graphs) < int(aim):
-        ### When a valid moelcule is found, the iteration is added to a list. If it has been more that 1000 iterations since the
-        ### last valid structrue was found, the search will be terminated on the basis that all molecules have been found.
+        ### When a valid molecule is found, the iteration is added to a list. If it has been more that 1000 iterations since the
+        ### last valid structure was found, the search will be terminated on the basis that all molecules have been found.
 
         if len(last_mol_found) !=0:
             if count - int(last_mol_found[-1]) > 1000:
@@ -222,7 +229,7 @@ def find_molecules(df, aim, multiple_molecules = False):
     
         graph, mask = make_full_graph(df)
 
-        ### A dictionary of the availbale valencies of each atom is generated.
+        ### A dictionary of the available valencies of each atom is generated.
 
         d = {}
 
@@ -233,6 +240,10 @@ def find_molecules(df, aim, multiple_molecules = False):
                 val = 4
             if int(typ) == 8:
                 val = 2
+            if int(typ) == 7:
+                val = 3
+            if int(typ) == 9:
+                val = 1
 
             for i, node_index in enumerate(graph.edges()[0]):
                 if int(node_index) == node:
@@ -358,6 +369,9 @@ def find_molecules(df, aim, multiple_molecules = False):
                     sys.stdout.write('\rmolecules found: %d' %len(graphs))
                     sys.stdout.flush()
                     last_mol_found.append(count)
+                else:
+                    count +=1  # FIX (17/04) - generator could not get past methane
+
             else:
                 if single_molecule(graph) and all ([not torch.equal(i.edata['distance'], graph.edata['distance']) for i in graphs]):
                     
@@ -365,5 +379,7 @@ def find_molecules(df, aim, multiple_molecules = False):
                     sys.stdout.write('\rmolecules found: %d' %len(graphs))
                     sys.stdout.flush()
                     last_mol_found.append(count)
+                else:
+                    count +=1  # FIX (17/04) - generator could not get past methane
     
     return graphs, last_mol_found, count

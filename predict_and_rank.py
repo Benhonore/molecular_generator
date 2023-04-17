@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/benhonore/gtn_imp_core/imp_core')
+sys.path.append('/Users/bh17536/work_area/imp_core/imp_core/')
 
 from model.gtn_model import GTNmodel as gtn
 from model.GTN_modules import scaling as scl
@@ -23,10 +23,14 @@ def collate(samples):
         return batched_graph
     
 def mae(x, y):
-    return sum(abs(x-y))/len(x)
+    if type(x) == np.float64:
+        y1 = np.float(y)
+        return x-y1
+    else:
+        return sum(abs(x-y))/len(x)
 
 train_model=gtn(model_args={'targetflag':['HCS', 'CCS']})
-train_model.load_model('/home/benhonore/2D_IMPRESSION_without_path_len_OPT_checkpoint.torch')
+train_model.load_model('/Users/bh17536/work_area/IMPRESSION_models/2D_IMPRESSION_without_path_len_OPT_checkpoint.torch')
 #train_model.load_model('/home/benhonore/DT45_2D_IMPRESSION_OPT_checkpoint.torch')
 
 def rank_structures(mols): # Current botch: zero all of the 3D relevant edge features 
