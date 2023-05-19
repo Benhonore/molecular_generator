@@ -81,8 +81,8 @@ def draw_graph_connectivity(g):
 def make_full_graph(atom_df):
     g = dgl.DGLGraph()
     g.add_nodes(len(atom_df))
-    ndata = {'type': torch.as_tensor(atom_df['typeint'].to_numpy(), dtype=torch.int64),
-            'shift':torch.as_tensor(atom_df['shift'].to_numpy(), dtype=torch.float32)}
+    ndata = {'type': torch.as_tensor(atom_df['typeint'].to_numpy()),
+            'shift':torch.as_tensor(atom_df['shift'].to_numpy())}
     g.ndata.update(ndata)
 
 
@@ -96,9 +96,15 @@ def make_full_graph(atom_df):
     for atom in range(len(atom_df)):
         for atom2 in range(len(atom_df)):
                 if atom == atom2:
-                    continue
+                    
+                    cpl_src.append(atom)
+                    cpl_end.append(atom2)
 
-                if atom_df.iloc[atom]['typestr'] =='H' or atom_df.iloc[atom2]['typestr']=='H':
+                    edge_type.append(0)
+
+                    mask.append(False)
+
+                elif atom_df.iloc[atom]['typestr'] =='H' or atom_df.iloc[atom2]['typestr']=='H':
 
                     cpl_src.append(atom)
                     cpl_end.append(atom2)
@@ -127,7 +133,7 @@ def make_full_graph(atom_df):
 def make_real_graph(atom_df):
     g = dgl.DGLGraph()
     g.add_nodes(len(atom_df))
-    ndata = {'type': torch.as_tensor(atom_df['typeint'].to_numpy(), dtype=torch.int64), 'shift':torch.as_tensor(atom_df['shift'].to_numpy())}
+    ndata = {'type': torch.as_tensor(atom_df['typeint'].to_numpy()), 'shift':torch.as_tensor(atom_df['shift'].to_numpy())}
     g.ndata.update(ndata)
 
 
@@ -138,7 +144,10 @@ def make_real_graph(atom_df):
     for atom in range(len(atom_df)):
         for atom2, con in enumerate(atom_df.iloc[atom]['conn']):
                 if atom == atom2:
-                    continue
+                    cpl_src.append(atom)
+                    cpl_end.append(atom2)
+                    edge_type.append(0)
+
                 else:
                     cpl_src.append(atom)
                     cpl_end.append(atom2)
@@ -348,15 +357,15 @@ def find_molecules(df, aim, multiple_molecules = False):
             
             if multiple_molecules:
                 graphs.append(graph)
-                sys.stdout.write('\rmolecules found: %d' %len(graphs))
-                sys.stdout.flush()
+                #sys.stdout.write('\rmolecules found: %d' %len(graphs))
+                #sys.stdout.flush()
                 last_mol_found.append(count)
             
             else:
                 if single_molecule(graph):
                     graphs.append(graph)
-                    sys.stdout.write('\rmolecules found: %d' %len(graphs))
-                    sys.stdout.flush()
+                    #sys.stdout.write('\rmolecules found: %d' %len(graphs))
+                    #sys.stdout.flush()
                     last_mol_found.append(count)
 
         
@@ -366,8 +375,8 @@ def find_molecules(df, aim, multiple_molecules = False):
                 if all ([not torch.equal(i.edata['distance'], graph.edata['distance']) for i in graphs]):
                 
                     graphs.append(graph)
-                    sys.stdout.write('\rmolecules found: %d' %len(graphs))
-                    sys.stdout.flush()
+                    #sys.stdout.write('\rmolecules found: %d' %len(graphs))
+                    #sys.stdout.flush()
                     last_mol_found.append(count)
                 else:
                     count +=1  # FIX (17/04) - generator could not get past methane
@@ -376,8 +385,8 @@ def find_molecules(df, aim, multiple_molecules = False):
                 if single_molecule(graph) and all ([not torch.equal(i.edata['distance'], graph.edata['distance']) for i in graphs]):
                     
                     graphs.append(graph)
-                    sys.stdout.write('\rmolecules found: %d' %len(graphs))
-                    sys.stdout.flush()
+                    #sys.stdout.write('\rmolecules found: %d' %len(graphs))
+                    #sys.stdout.flush()
                     last_mol_found.append(count)
                 else:
                     count +=1  # FIX (17/04) - generator could not get past methane

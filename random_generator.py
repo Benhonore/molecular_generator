@@ -170,11 +170,11 @@ def update_g(g, mask):
 ### This function simply checks that the valencies of the graph make chemical sense. It loops through, pulls out the atom 
 ### type at each node and asserts that its valency is valid.
 
-str_types = {'1':'H', '6':'C', '8':'O'}
+str_types = {'1':'H', '6':'C', '7':'N', '8':'O', '9':'F'}
 
 def check_valency(g):
     # Create a dictionary of valency constraints for each element
-    valency_dict = {'C': 4, 'O': 2, 'H':1}
+    valency_dict = {'C': 4, 'N':3, 'O': 2, 'F':1, 'H':1}
     # Calculate the valency of each node
     valencies = {}
     for i, node in enumerate(g.ndata['type']):
@@ -187,7 +187,7 @@ def check_valency(g):
             # Loop through edges, adding to bond order
             for index, j in enumerate(g.edges()[0]):
                 if int(j) == i:
-                    bond_order += int(g.edata['bond_order'][index])
+                    bond_order += int(g.edata['distance'][index])
                     
         else:
             bond_order = 1
